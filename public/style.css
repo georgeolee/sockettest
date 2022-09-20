@@ -1,0 +1,9 @@
+
+#messages li{
+    list-style-type: none;
+    line-height: 2em;    
+}
+
+#messages{
+    margin-bottom: 2em;
+}

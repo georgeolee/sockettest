@@ -3,7 +3,15 @@ if(process.env.NODE_ENV !== 'production'){
     require('dotenv').config()
 }
 
+// es6 import syntax
+// import fetch from 'node-fetch' 
+
+// commonjs workaround
+const fetch = (...args) =>
+	import('node-fetch').then(({default: fetch}) => fetch(...args));
+
 const path = require('path')
+
 const express = require('express')
 const app = express()
 
@@ -36,31 +44,40 @@ app.get('/', (req, res) => {
 })
 
 io.on('connection', async socket => {
-    console.log('a user connected')
+    console.log(`a user connected; id: ${socket.id}`)
 
+    //get old messages from mongodb
     let query = Message.find()
-
     try{
         const messages = await query.exec()
         
         const messageText = messages.map(m => m.text)
 
-        io.to(socket.id).emit('missed messages', messageText)
+        io.to(socket.id).emit('missed messages', messages)
 
     }catch(err){
         console.log(err)
     }
+
+    const adj = await getRandomWord('adjective')
+    const noun = await getRandomWord('noun')
+    const name = `${adj} ${noun}`.toUpperCase()
+    console.log(name)
+
+    io.to(socket.id).emit('name prompt', name)
     
+
     socket.on('disconnect', () => {
         console.log('user disconnected')
     })
 
     socket.on('chat message',  async msg => {
-        console.log('received message: ' + msg)
+        console.log(`received chat message from use ${msg.user}: ${msg.text}`)
         io.emit('chat message', msg)
 
         const message = new Message({
-            text: msg,
+            user: msg.user,
+            text: msg.text,
             timestamp: Date.now()
         })
 
@@ -71,8 +88,35 @@ io.on('connection', async socket => {
         }
         
     })
+
+    // socket.on('user')
 })
 
 server.listen(port, () => {
     console.log(`listening on *:${port}`)
 })
+
+async function getRandomWord(type=''){
+    let word
+    let url = 'https://api.api-ninjas.com/v1/randomword' //api endpoint for random word
+    if(type) url += `?type=${type}` // noun | verb | adjective | adverb | (nothing)
+    const options = {
+        method: 'GET',
+        headers: {
+            'X-Api-Key':process.env.API_NINJA_KEY
+        }
+    }
+
+    try{
+        const response = await fetch(url, options)
+        if(!response.ok) throw new Error(`fetch error; status ${response.status}`)
+        
+        word = await response.json().then(json => json.word)
+        // console.log(word)
+
+    }catch(e){
+        console.log(e)
+        word = 'thing'
+    }
+    return word
+}

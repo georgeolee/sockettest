@@ -23,6 +23,8 @@
     <script type="text/javascript">
         var socket = io()
 
+        let username = 'NO_NAME'
+
         let messages = document.getElementById('messages')
         let form = document.getElementById('form')
         let input = document.getElementById('input')
@@ -30,14 +32,14 @@
         form.addEventListener('submit', e => {
             e.preventDefault()
             if(input.value){
-                socket.emit('chat message', input.value)
+                socket.emit('chat message', {text: input.value, user: username})
                 input.value = ''
             }
         })
 
         function logMessage(msg, scrollTo = true){
             const item = document.createElement('li')
-            item.textContent = msg
+            item.textContent = `${msg.user || 'SOME_RANDO'}: ${msg.text}`
             messages.appendChild(item)
             if(scrollTo) window.scrollTo(0, document.body.scrollHeight)
             return item
@@ -53,6 +55,18 @@
                 item.style.color = '#888'
             }
         })
+
+        
+        socket.on('name prompt', suggestion => {
+            username = namePrompt(suggestion)
+            form.classList.add('visible')
+            socket.emit('username', username)
+        })
+
+        function namePrompt(suggestion){
+            const name = prompt('enter name', suggestion)
+            return name || 'SOME_RANDO'
+        }
 
     </script>
 </body>

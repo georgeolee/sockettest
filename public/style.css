@@ -5,5 +5,13 @@
 }
 
 #messages{
-    margin-bottom: 2em;
+    margin-bottom: 2em;    
+}
+
+#form{
+    visibility: hidden;
+}
+
+#form.visible{
+    visibility: visible;
 }
